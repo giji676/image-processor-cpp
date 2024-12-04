@@ -113,8 +113,8 @@ void printPixels(std::vector<std::vector<pixel>> pixels) {
     }
 }
 
-int main() {
-    std::ifstream file("test.bmp", std::ios::binary);
+std::vector<std::vector<pixel>> loadBMP(const std::string& filename) {
+    std::ifstream file(filename, std::ios::binary);
 
     fileHeader fileHeader;
     std::vector<char> bytes(sizeof(fileHeader));
@@ -137,5 +137,10 @@ int main() {
     std::vector<std::vector<pixel>> pixel_rows = readPixelData(file, bitmapInfoHeader.width, bitmapInfoHeader.height, row_size);
 
     file.close();
+    return pixel_rows;
+}
+
+int main() {
+    std::vector<std::vector<pixel>> pixels = loadBMP("test.bmp");
     return 0;
 }
