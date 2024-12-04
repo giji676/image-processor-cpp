@@ -2,6 +2,7 @@
 #include <fstream>
 #include <vector>
 #include <cstdint>
+#include <string>
 
 template <typename T>
 T lEndianUInt(std::vector<char> vals, int offset) {
@@ -14,133 +15,140 @@ T lEndianUInt(std::vector<char> vals, int offset) {
     return newValue;
 }
 
-struct __attribute__((packed)) fileHeader {
-    char signature[2];  // 2 bytes
-    uint32_t size;      // 4 bytes
-    uint16_t reserve1;  // 2 bytes
-    uint16_t reserve2;  // 2 bytes
-    uint32_t offset;    // 4 bytes
-};
-
-fileHeader extractFileHeader(const std::vector<char>& bytes) {
-    return *reinterpret_cast<const fileHeader*>(bytes.data());
-}
-
-struct __attribute__((packed)) bitmapInfoHeader {
-    uint32_t size;  // 4 u bytes
-    int32_t width;  // 4 bytes
-    int32_t height;  // 4 bytes
-    uint16_t planes;  // 2 u bytes
-    uint16_t bitCount;  // 2 u bytes
-    uint32_t compression;  // 4 u bytes
-    uint32_t sizeImage;  // 4 u bytes
-    int32_t horizontalRes;  // 4 bytes
-    int32_t verticalRes;  // 4 bytes
-    uint32_t colorsUsed;  // 4 u bytes
-    uint32_t colorsImportant;  // 4 u bytes
-};
-
-bitmapInfoHeader extractBitmapInfoHeader(const std::vector<char>& bytes) {
-    return *reinterpret_cast<const bitmapInfoHeader*>(bytes.data());
-}
-
-bool readFileBytes(std::ifstream& file, char* buffer, int size) {
-    file.read(buffer, size);
-    return file.gcount() == size;
-}
-
 struct pixel {
     uint8_t r;
     uint8_t g;
     uint8_t b;
 };
 
-std::vector<std::vector<pixel>> readPixelData(std::ifstream& file,
-                                              int width,
-                                              int height,
-                                              int row_size) {
-    std::vector<std::vector<pixel>> pixel_rows(height, std::vector<pixel>(width));
 
-    for (int i = 0; i < height; ++i) {
-        // Read raw row data (width * 3 bytes for RGB)
-        std::vector<char> row_data(row_size);
-        readFileBytes(file, row_data.data(), row_size);
+class BMP {
+    private:
+        // Nested structures
+        struct __attribute__((packed)) fileHeader {
+            char signature[2];  // 2 bytes
+            uint32_t size;      // 4 bytes
+            uint16_t reserve1;  // 2 bytes
+            uint16_t reserve2;  // 2 bytes
+            uint32_t offset;    // 4 bytes
+        };
 
-        // Fill pixel_row with RGB data
-        for (int j = 0; j < width; ++j) {
-            pixel_rows[i][j] = {
-                static_cast<uint8_t>(row_data[j * 3 + 2]),
-                static_cast<uint8_t>(row_data[j * 3 + 1]),
-                static_cast<uint8_t>(row_data[j * 3])
-            };
+        struct __attribute__((packed)) bitmapInfoHeader {
+            uint32_t size;         // 4 bytes
+            int32_t width;         // 4 bytes
+            int32_t height;        // 4 bytes
+            uint16_t planes;       // 2 bytes
+            uint16_t bitCount;     // 2 bytes
+            uint32_t compression;  // 4 bytes
+            uint32_t sizeImage;    // 4 bytes
+            int32_t horizontalRes; // 4 bytes
+            int32_t verticalRes;   // 4 bytes
+            uint32_t colorsUsed;   // 4 bytes
+            uint32_t colorsImportant; // 4 bytes
+        };
+
+        fileHeader header;
+        bitmapInfoHeader infoHeader;
+
+        // Helper methods
+        fileHeader extractFileHeader(const std::vector<char>& bytes) {
+            return *reinterpret_cast<const fileHeader*>(bytes.data());
         }
-    }
-    return pixel_rows;
-}
 
-void printFileHeader(fileHeader fileHeader) {
-    std::cout << "File Header" << std::endl;
-    std::cout << "Signature: " << fileHeader.signature[0] << fileHeader.signature[1] << std::endl;
-    std::cout << "Size: " << fileHeader.size << std::endl;
-    std::cout << "Reserve1: " << fileHeader.reserve1 << std::endl;
-    std::cout << "Reserve2: " << fileHeader.reserve2 << std::endl;
-    std::cout << "Offset: " << fileHeader.offset << std::endl;
-}
-
-void printBitmapInfoHeader(bitmapInfoHeader bitmapInfoHeader) {
-    std::cout << "Bitmap Info Header" << std::endl;
-    std::cout << "Size: " << bitmapInfoHeader.size << std::endl;
-    std::cout << "Width: " << bitmapInfoHeader.width << std::endl;
-    std::cout << "Height: " << bitmapInfoHeader.height << std::endl;
-    std::cout << "Planes: " << bitmapInfoHeader.planes << std::endl;
-    std::cout << "BitCount: " << bitmapInfoHeader.bitCount << std::endl;
-    std::cout << "Compression: " << bitmapInfoHeader.compression << std::endl;
-    std::cout << "SizeImage: " << bitmapInfoHeader.sizeImage << std::endl;
-    std::cout << "HorizontalRes: " << bitmapInfoHeader.horizontalRes << std::endl;
-    std::cout << "VerticalRes: " << bitmapInfoHeader.verticalRes << std::endl;
-    std::cout << "ColorsUsed: " << bitmapInfoHeader.colorsUsed << std::endl;
-    std::cout << "ColorsImportant: " << bitmapInfoHeader.colorsImportant << std::endl;
-}
-
-void printPixels(std::vector<std::vector<pixel>> pixels) {
-    for (int i = 0; i < pixels.size(); ++i) {
-        for (int j = 0; j < pixels[i].size(); ++j) {
-            std::cout << static_cast<int>(pixels[i][j].r)  << "|";
-            std::cout << static_cast<int>(pixels[i][j].g)  << "|";
-            std::cout << static_cast<int>(pixels[i][j].b)  << " ";
+        bitmapInfoHeader extractBitmapInfoHeader(const std::vector<char>& bytes) {
+            return *reinterpret_cast<const bitmapInfoHeader*>(bytes.data());
         }
-        std::cout << std::endl;
-    }
-}
 
-std::vector<std::vector<pixel>> loadBMP(const std::string& filename) {
-    std::ifstream file(filename, std::ios::binary);
+        bool readFileBytes(std::ifstream& file, char* buffer, int size) {
+            file.read(buffer, size);
+            return file.gcount() == size;
+        }
 
-    fileHeader fileHeader;
-    std::vector<char> bytes(sizeof(fileHeader));
-    readFileBytes(file, bytes.data(), sizeof(fileHeader));
-    fileHeader = extractFileHeader(bytes);
+        std::vector<std::vector<pixel>> readPixelData(std::ifstream& file, int width, int height, int row_size) {
+            std::vector<std::vector<pixel>> pixel_rows(height, std::vector<pixel>(width));
+            for (int i = 0; i < height; ++i) {
+                // Read raw row data
+                std::vector<char> row_data(row_size);
+                readFileBytes(file, row_data.data(), row_size);
+                // Fill pixels from RGB data
+                for (int j = 0; j < width; ++j) {
+                    pixel_rows[i][j] = {
+                        static_cast<uint8_t>(row_data[j * 3 + 2]),  // Red
+                        static_cast<uint8_t>(row_data[j * 3 + 1]),  // Green
+                        static_cast<uint8_t>(row_data[j * 3])       // Blue
+                    };
+                }
+            }
+            return pixel_rows;
+        }
 
-    int bitmapInfoHeaderOffset = 14;
-    file.seekg(bitmapInfoHeaderOffset, std::ios::beg);
+    public:
+        // Public methods
+        std::vector<std::vector<pixel>> loadBMP(const std::string& filename) {
+            std::ifstream file(filename, std::ios::binary);
+            if (!file.is_open()) {
+                throw std::runtime_error("Error: Could not open file");
+            }
 
-    bitmapInfoHeader bitmapInfoHeader;
-    std::vector<char> bitmapInfoHeaderBytes(sizeof(bitmapInfoHeader));
-    readFileBytes(file, bitmapInfoHeaderBytes.data(), sizeof(bitmapInfoHeader));
-    bitmapInfoHeader = extractBitmapInfoHeader(bitmapInfoHeaderBytes);
+            // Read file header
+            std::vector<char> fileHeaderBytes(sizeof(fileHeader));
+            readFileBytes(file, fileHeaderBytes.data(), sizeof(fileHeader));
+            header = extractFileHeader(fileHeaderBytes);
 
-    int row_size = static_cast<int>((bitmapInfoHeader.bitCount *
-                                     bitmapInfoHeader.width + 31) / 32) * 4;
-    int pixel_array_size = row_size * std::abs(bitmapInfoHeader.height);
-    file.seekg(fileHeader.offset, std::ios::beg);
+            // Read bitmap info header
+            file.seekg(14, std::ios::beg); // Bitmap info header starts after 14 bytes
+            std::vector<char> infoHeaderBytes(sizeof(bitmapInfoHeader));
+            readFileBytes(file, infoHeaderBytes.data(), sizeof(bitmapInfoHeader));
+            infoHeader = extractBitmapInfoHeader(infoHeaderBytes);
 
-    std::vector<std::vector<pixel>> pixel_rows = readPixelData(file, bitmapInfoHeader.width, bitmapInfoHeader.height, row_size);
+            // Calculate row size and read pixel data
+            int row_size = static_cast<int>((infoHeader.bitCount * infoHeader.width + 31) / 32) * 4;
+            file.seekg(header.offset, std::ios::beg);
+            auto pixelArray = readPixelData(file, infoHeader.width, infoHeader.height, row_size);
 
-    file.close();
-    return pixel_rows;
-}
+            file.close();
+            return pixelArray;
+        }
+
+        // Debugging/printing methods
+        void printFileHeader() const {
+            std::cout << "File Header\n";
+            std::cout << "Signature: " << header.signature[0] << header.signature[1] << '\n';
+            std::cout << "Size: " << header.size << '\n';
+            std::cout << "Reserve1: " << header.reserve1 << '\n';
+            std::cout << "Reserve2: " << header.reserve2 << '\n';
+            std::cout << "Offset: " << header.offset << '\n';
+        }
+
+        void printBitmapInfoHeader() const {
+            std::cout << "Bitmap Info Header\n";
+            std::cout << "Size: " << infoHeader.size << '\n';
+            std::cout << "Width: " << infoHeader.width << '\n';
+            std::cout << "Height: " << infoHeader.height << '\n';
+            std::cout << "Planes: " << infoHeader.planes << '\n';
+            std::cout << "BitCount: " << infoHeader.bitCount << '\n';
+            std::cout << "Compression: " << infoHeader.compression << '\n';
+            std::cout << "SizeImage: " << infoHeader.sizeImage << '\n';
+            std::cout << "HorizontalRes: " << infoHeader.horizontalRes << '\n';
+            std::cout << "VerticalRes: " << infoHeader.verticalRes << '\n';
+            std::cout << "ColorsUsed: " << infoHeader.colorsUsed << '\n';
+            std::cout << "ColorsImportant: " << infoHeader.colorsImportant << '\n';
+        }
+
+        void printPixels(const std::vector<std::vector<pixel>>& pixels) const {
+            for (int i = 0; i < pixels.size(); ++i) {
+                for (int j = 0; j < pixels[i].size(); ++j) {
+                    std::cout << static_cast<int>(pixels[i][j].r)  << "|";
+                    std::cout << static_cast<int>(pixels[i][j].g)  << "|";
+                    std::cout << static_cast<int>(pixels[i][j].b)  << " ";
+                }
+                std::cout << std::endl;
+            }
+        }
+};
 
 int main() {
-    std::vector<std::vector<pixel>> pixels = loadBMP("test.bmp");
+    BMP bmp;
+    std::vector<std::vector<pixel>> pixels = bmp.loadBMP("test.bmp");
     return 0;
 }
