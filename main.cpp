@@ -42,7 +42,6 @@ fileHeader extractFileHeader(std::vector<char> bytes) {
 }
 
 struct bitmapInfoHeader {
-    // IiiHHIIiiII
     uint32_t size;  // 4 u bytes
     int32_t width;  // 4 bytes
     int32_t height;  // 4 bytes
@@ -97,22 +96,46 @@ std::vector<char> readFileBytes(std::ifstream& file, int size) {
     return fileBytes;
 }
 
+struct pixel {
+    uint8_t r;
+    uint8_t g;
+    uint8_t b;
+};
+
+std::vector<std::vector<pixel>> readPixelData(std::ifstream& file,
+                                              int width,
+                                              int height,
+                                              int row_size) {
+    std::vector<std::vector<pixel>> pixel_rows(height, std::vector<pixel>(width));
+
+    for (int i = 0; i < height; ++i) {
+        // Read raw row data (width * 3 bytes for RGB)
+        std::vector<char> row_data = readFileBytes(file, row_size);
+
+        // Fill pixel_row with RGB data
+        for (int j = 0; j < width; ++j) {
+            pixel_rows[i][j].b = static_cast<uint8_t>(row_data[j * 3]);
+            pixel_rows[i][j].g = static_cast<uint8_t>(row_data[j * 3 + 1]);
+            pixel_rows[i][j].r = static_cast<uint8_t>(row_data[j * 3 + 2]);
+        }
+    }
+    return pixel_rows;
+}
+
 int main() {
-    std::ifstream file("example.bmp", std::ios::binary);
+    std::ifstream file("test.bmp", std::ios::binary);
 
     fileHeader fileHeader;
     std::vector<char> bytes = readFileBytes(file, sizeof(fileHeader));
     fileHeader = extractFileHeader(bytes);
 
     int bitmapInfoHeaderOffset = 14;
-    file.seekg(bitmapInfoHeaderOffset);
+    file.seekg(bitmapInfoHeaderOffset, std::ios::beg);
 
     bitmapInfoHeader bitmapInfoHeader;
     std::vector<char> bitmapInfoHeaderBytes = readFileBytes(file, sizeof(bitmapInfoHeader));
     bitmapInfoHeader = extractBitmapInfoHeader(bitmapInfoHeaderBytes);
-
-    file.close();
-
+    /*
     std::cout << "File Header" << std::endl;
     std::cout << "Signature: " << fileHeader.signature[0] << fileHeader.signature[1] << std::endl;
     std::cout << "Size: " << fileHeader.size << std::endl;
@@ -134,6 +157,25 @@ int main() {
     std::cout << "VerticalRes: " << bitmapInfoHeader.verticalRes << std::endl;
     std::cout << "ColorsUsed: " << bitmapInfoHeader.colorsUsed << std::endl;
     std::cout << "ColorsImportant: " << bitmapInfoHeader.colorsImportant << std::endl;
+    */
 
+    int row_size = static_cast<int>((bitmapInfoHeader.bitCount *
+                                     bitmapInfoHeader.width + 31) / 32) * 4;
+    int pixel_array_size = row_size * std::abs(bitmapInfoHeader.height);
+    file.seekg(fileHeader.offset, std::ios::beg);
+
+    std::vector<std::vector<pixel>> pixel_rows = readPixelData(file, bitmapInfoHeader.width, bitmapInfoHeader.height, row_size);
+    /*
+    for (int i = 0; i < pixel_rows.size(); ++i) {
+        for (int j = 0; j < pixel_rows[i].size(); ++j) {
+            std::cout << static_cast<int>(pixel_rows[i][j].r)  << "|";
+            std::cout << static_cast<int>(pixel_rows[i][j].g)  << "|";
+            std::cout << static_cast<int>(pixel_rows[i][j].b)  << " ";
+        }
+        std::cout << std::endl;
+    }
+    */
+
+    file.close();
     return 0;
 }
