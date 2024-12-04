@@ -84,6 +84,41 @@ std::vector<std::vector<pixel>> readPixelData(std::ifstream& file,
     return pixel_rows;
 }
 
+void printFileHeader(fileHeader fileHeader) {
+    std::cout << "File Header" << std::endl;
+    std::cout << "Signature: " << fileHeader.signature[0] << fileHeader.signature[1] << std::endl;
+    std::cout << "Size: " << fileHeader.size << std::endl;
+    std::cout << "Reserve1: " << fileHeader.reserve1 << std::endl;
+    std::cout << "Reserve2: " << fileHeader.reserve2 << std::endl;
+    std::cout << "Offset: " << fileHeader.offset << std::endl;
+}
+
+void printBitmapInfoHeader(bitmapInfoHeader bitmapInfoHeader) {
+    std::cout << "Bitmap Info Header" << std::endl;
+    std::cout << "Size: " << bitmapInfoHeader.size << std::endl;
+    std::cout << "Width: " << bitmapInfoHeader.width << std::endl;
+    std::cout << "Height: " << bitmapInfoHeader.height << std::endl;
+    std::cout << "Planes: " << bitmapInfoHeader.planes << std::endl;
+    std::cout << "BitCount: " << bitmapInfoHeader.bitCount << std::endl;
+    std::cout << "Compression: " << bitmapInfoHeader.compression << std::endl;
+    std::cout << "SizeImage: " << bitmapInfoHeader.sizeImage << std::endl;
+    std::cout << "HorizontalRes: " << bitmapInfoHeader.horizontalRes << std::endl;
+    std::cout << "VerticalRes: " << bitmapInfoHeader.verticalRes << std::endl;
+    std::cout << "ColorsUsed: " << bitmapInfoHeader.colorsUsed << std::endl;
+    std::cout << "ColorsImportant: " << bitmapInfoHeader.colorsImportant << std::endl;
+}
+
+void printPixels(std::vector<std::vector<pixel>> pixels) {
+    for (int i = 0; i < pixels.size(); ++i) {
+        for (int j = 0; j < pixels[i].size(); ++j) {
+            std::cout << static_cast<int>(pixels[i][j].r)  << "|";
+            std::cout << static_cast<int>(pixels[i][j].g)  << "|";
+            std::cout << static_cast<int>(pixels[i][j].b)  << " ";
+        }
+        std::cout << std::endl;
+    }
+}
+
 int main() {
     std::ifstream file("test.bmp", std::ios::binary);
 
@@ -97,29 +132,6 @@ int main() {
     bitmapInfoHeader bitmapInfoHeader;
     std::vector<char> bitmapInfoHeaderBytes = readFileBytes(file, sizeof(bitmapInfoHeader));
     bitmapInfoHeader = extractBitmapInfoHeader(bitmapInfoHeaderBytes);
-    /*
-    std::cout << "File Header" << std::endl;
-    std::cout << "Signature: " << fileHeader.signature[0] << fileHeader.signature[1] << std::endl;
-    std::cout << "Size: " << fileHeader.size << std::endl;
-    std::cout << "Reserve1: " << fileHeader.reserve1 << std::endl;
-    std::cout << "Reserve2: " << fileHeader.reserve2 << std::endl;
-    std::cout << "Offset: " << fileHeader.offset << std::endl;
-
-    std::cout << std::endl;
-
-    std::cout << "Bitmap Info Header" << std::endl;
-    std::cout << "Size: " << bitmapInfoHeader.size << std::endl;
-    std::cout << "Width: " << bitmapInfoHeader.width << std::endl;
-    std::cout << "Height: " << bitmapInfoHeader.height << std::endl;
-    std::cout << "Planes: " << bitmapInfoHeader.planes << std::endl;
-    std::cout << "BitCount: " << bitmapInfoHeader.bitCount << std::endl;
-    std::cout << "Compression: " << bitmapInfoHeader.compression << std::endl;
-    std::cout << "SizeImage: " << bitmapInfoHeader.sizeImage << std::endl;
-    std::cout << "HorizontalRes: " << bitmapInfoHeader.horizontalRes << std::endl;
-    std::cout << "VerticalRes: " << bitmapInfoHeader.verticalRes << std::endl;
-    std::cout << "ColorsUsed: " << bitmapInfoHeader.colorsUsed << std::endl;
-    std::cout << "ColorsImportant: " << bitmapInfoHeader.colorsImportant << std::endl;
-    */
 
     int row_size = static_cast<int>((bitmapInfoHeader.bitCount *
                                      bitmapInfoHeader.width + 31) / 32) * 4;
@@ -127,16 +139,6 @@ int main() {
     file.seekg(fileHeader.offset, std::ios::beg);
 
     std::vector<std::vector<pixel>> pixel_rows = readPixelData(file, bitmapInfoHeader.width, bitmapInfoHeader.height, row_size);
-    /*
-    for (int i = 0; i < pixel_rows.size(); ++i) {
-        for (int j = 0; j < pixel_rows[i].size(); ++j) {
-            std::cout << static_cast<int>(pixel_rows[i][j].r)  << "|";
-            std::cout << static_cast<int>(pixel_rows[i][j].g)  << "|";
-            std::cout << static_cast<int>(pixel_rows[i][j].b)  << " ";
-        }
-        std::cout << std::endl;
-    }
-    */
 
     file.close();
     return 0;
