@@ -14,34 +14,19 @@ T lEndianUInt(std::vector<char> vals, int offset) {
     return newValue;
 }
 
-struct fileHeader {
+struct __attribute__((packed)) fileHeader {
     char signature[2];  // 2 bytes
-    uint32_t size;  // 4 bytes
+    uint32_t size;      // 4 bytes
     uint16_t reserve1;  // 2 bytes
     uint16_t reserve2;  // 2 bytes
-    uint32_t offset;  // 4 bytes
+    uint32_t offset;    // 4 bytes
 };
 
-fileHeader extractFileHeader(std::vector<char> bytes) {
-    fileHeader fileHeader;
-    int offset = 0;
-    fileHeader.signature[0] = bytes[0];
-    fileHeader.signature[1] = bytes[1];
-    offset += sizeof(fileHeader.signature);
-
-    fileHeader.size = lEndianUInt<uint32_t>(bytes, offset);
-    offset += sizeof(fileHeader.size);
-    fileHeader.reserve1 = lEndianUInt<uint16_t>(bytes, offset);
-    offset += sizeof(fileHeader.reserve1);
-    fileHeader.reserve2 = lEndianUInt<uint16_t>(bytes, offset);
-    offset += sizeof(fileHeader.reserve2);
-    fileHeader.offset = lEndianUInt<uint32_t>(bytes, offset);
-    offset += sizeof(fileHeader.offset);
-
-    return fileHeader;
+fileHeader extractFileHeader(const std::vector<char>& bytes) {
+    return *reinterpret_cast<const fileHeader*>(bytes.data());
 }
 
-struct bitmapInfoHeader {
+struct __attribute__((packed)) bitmapInfoHeader {
     uint32_t size;  // 4 u bytes
     int32_t width;  // 4 bytes
     int32_t height;  // 4 bytes
@@ -55,33 +40,8 @@ struct bitmapInfoHeader {
     uint32_t colorsImportant;  // 4 u bytes
 };
 
-bitmapInfoHeader extractBitmapInfoHeader(std::vector<char> bytes) {
-    bitmapInfoHeader header;
-    int offset = 0;
-    header.size = lEndianUInt<uint32_t>(bytes, offset);
-    offset += sizeof(header.size);
-    header.width = lEndianUInt<int32_t>(bytes, offset);
-    offset += sizeof(header.width);
-    header.height = lEndianUInt<int32_t>(bytes, offset);
-    offset += sizeof(header.height);
-    header.planes = lEndianUInt<uint16_t>(bytes, offset);
-    offset += sizeof(header.planes);
-    header.bitCount = lEndianUInt<uint16_t>(bytes, offset);
-    offset += sizeof(header.bitCount);
-    header.compression = lEndianUInt<uint32_t>(bytes, offset);
-    offset += sizeof(header.compression);
-    header.sizeImage = lEndianUInt<uint32_t>(bytes, offset);
-    offset += sizeof(header.sizeImage);
-    header.horizontalRes = lEndianUInt<int32_t>(bytes, offset);
-    offset += sizeof(header.horizontalRes);
-    header.verticalRes = lEndianUInt<int32_t>(bytes, offset);
-    offset += sizeof(header.verticalRes);
-    header.colorsUsed = lEndianUInt<uint32_t>(bytes, offset);
-    offset += sizeof(header.colorsUsed);
-    header.colorsImportant = lEndianUInt<uint32_t>(bytes, offset);
-    offset += sizeof(header.colorsImportant);
-
-    return header;
+bitmapInfoHeader extractBitmapInfoHeader(const std::vector<char>& bytes) {
+    return *reinterpret_cast<const bitmapInfoHeader*>(bytes.data());
 }
 
 std::vector<char> readFileBytes(std::ifstream& file, int size) {
