@@ -115,9 +115,9 @@ std::vector<std::vector<pixel>> readPixelData(std::ifstream& file,
         // Fill pixel_row with RGB data
         for (int j = 0; j < width; ++j) {
             pixel_rows[i][j] = {
-                static_cast<uint8_t>(row_data[j * 3]),
+                static_cast<uint8_t>(row_data[j * 3 + 2]),
                 static_cast<uint8_t>(row_data[j * 3 + 1]),
-                static_cast<uint8_t>(row_data[j * 3 + 2])
+                static_cast<uint8_t>(row_data[j * 3])
             };
         }
     }
