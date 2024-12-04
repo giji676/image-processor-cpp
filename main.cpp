@@ -44,16 +44,9 @@ bitmapInfoHeader extractBitmapInfoHeader(const std::vector<char>& bytes) {
     return *reinterpret_cast<const bitmapInfoHeader*>(bytes.data());
 }
 
-std::vector<char> readFileBytes(std::ifstream& file, int size) {
-    std::vector<char> fileBytes(size);
-    file.read(fileBytes.data(), fileBytes.size());
-
-    if (file.gcount() < fileBytes.size()) {
-        std::cerr << "Error: Could not read enough bytes" << std::endl;
-        return {};
-    }
-
-    return fileBytes;
+bool readFileBytes(std::ifstream& file, char* buffer, int size) {
+    file.read(buffer, size);
+    return file.gcount() == size;
 }
 
 struct pixel {
@@ -70,7 +63,8 @@ std::vector<std::vector<pixel>> readPixelData(std::ifstream& file,
 
     for (int i = 0; i < height; ++i) {
         // Read raw row data (width * 3 bytes for RGB)
-        std::vector<char> row_data = readFileBytes(file, row_size);
+        std::vector<char> row_data(row_size);
+        readFileBytes(file, row_data.data(), row_size);
 
         // Fill pixel_row with RGB data
         for (int j = 0; j < width; ++j) {
@@ -123,14 +117,16 @@ int main() {
     std::ifstream file("test.bmp", std::ios::binary);
 
     fileHeader fileHeader;
-    std::vector<char> bytes = readFileBytes(file, sizeof(fileHeader));
+    std::vector<char> bytes(sizeof(fileHeader));
+    readFileBytes(file, bytes.data(), sizeof(fileHeader));
     fileHeader = extractFileHeader(bytes);
 
     int bitmapInfoHeaderOffset = 14;
     file.seekg(bitmapInfoHeaderOffset, std::ios::beg);
 
     bitmapInfoHeader bitmapInfoHeader;
-    std::vector<char> bitmapInfoHeaderBytes = readFileBytes(file, sizeof(bitmapInfoHeader));
+    std::vector<char> bitmapInfoHeaderBytes(sizeof(bitmapInfoHeader));
+    readFileBytes(file, bitmapInfoHeaderBytes.data(), sizeof(bitmapInfoHeader));
     bitmapInfoHeader = extractBitmapInfoHeader(bitmapInfoHeaderBytes);
 
     int row_size = static_cast<int>((bitmapInfoHeader.bitCount *
