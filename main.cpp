@@ -164,29 +164,27 @@ public:
             for (int j = 0; j < rowWidth; ++j) {
                 rowData[j*3] = pixels[i][j].b;
                 rowData[j*3 + 1] = pixels[i][j].g;
-                rowData[j*3 + 2] = pixels[i][j].r;
-            }
+                rowData[j*3 + 2] = pixels[i][j].r; }
             file.write(rowData.data(), rowSize);
         }
 
         file.close();
     }
 
-    std::vector<std::vector<pixel>> grayscale(std::vector<std::vector<pixel>> pixels) const {
+    void grayscale(std::vector<std::vector<pixel>>& pixels) const {
         for (int i = 0; i < pixels.size(); ++i) {
             for (int j = 0; j < pixels[i].size(); ++j) {
                 uint8_t grayVal = 0.229*pixels[i][j].r + 0.587*pixels[i][j].g + 0.114*pixels[i][j].b;
                 pixels[i][j] = {grayVal, grayVal, grayVal};
             }
         }
-        return pixels;
     }
 };
 
 int main() {
     BMP bmp;
     std::vector<std::vector<pixel>> pixels = bmp.loadBMP("test.bmp");
-    pixels = bmp.grayscale(pixels);
+    bmp.grayscale(pixels);
     bmp.saveImage("gray.bmp", pixels);
     return 0;
 }
