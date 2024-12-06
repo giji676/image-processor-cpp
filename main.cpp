@@ -82,6 +82,42 @@ private:
         return pixel_rows;
     }
 
+    void constructFileHeader(const std::vector<std::vector<pixel>>& pixels, fileHeader& header) {
+        header.signature[0] = 'B';
+        header.signature[1] = 'M';
+        int height = pixels.size();
+        int width = pixels[0].size();
+        int rawImageSize = width*3;
+        rawImageSize = (rawImageSize + (rawImageSize%4))*height;
+        int totalFileSize = 14 + 40 + rawImageSize;
+        header.size = totalFileSize;
+        header.reserve1 = 0;
+        header.reserve2 = 0;
+        header.offset = 14 + 40;
+    }
+
+    void constructBitmapInfoHeader(const std::vector<std::vector<pixel>>& pixels, bitmapInfoHeader& infoHeader) {
+        infoHeader.size = 40;
+        int height = pixels.size();
+        int width = pixels[0].size();
+        int rawImageSize = width*3;
+        rawImageSize = (rawImageSize + (rawImageSize%4))*height;
+        infoHeader.width = width;
+        infoHeader.height = height;
+        infoHeader.planes = 1;
+        infoHeader.bitCount = 24;
+        infoHeader.compression = 0;
+        infoHeader.sizeImage = rawImageSize;
+        int standardDPI = 96;
+        double mToInch = 39.3701;
+        int resX = static_cast<int>(standardDPI * mToInch);
+        int resY = static_cast<int>(standardDPI * mToInch);
+        infoHeader.horizontalRes = resX;
+        infoHeader.verticalRes = resY;
+        infoHeader.colorsUsed = 0;
+        infoHeader.colorsImportant = 0;
+    }
+
 public:
     // Public methods
     std::vector<std::vector<pixel>> loadBMP(const std::string& filename) {
@@ -147,12 +183,15 @@ public:
         }
     }
 
-    void saveImage(const std::string& filename, const std::vector<std::vector<pixel>>& pixels) const {
+    void saveImage(const std::string& filename, const std::vector<std::vector<pixel>>& pixels) {
         std::ofstream file(filename, std::ios::binary);
-        file.write(reinterpret_cast<const char*>(&header), sizeof(header));
-        file.write(reinterpret_cast<const char*>(&infoHeader), sizeof(infoHeader));
-        file.seekp(header.offset, std::ios::beg);
-
+        fileHeader header_ = {0, 0, 0, 0, 0};
+        constructFileHeader(pixels, header_);
+        file.write(reinterpret_cast<const char*>(&header_), sizeof(header_));
+        bitmapInfoHeader infoHeader_ = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+        constructBitmapInfoHeader(pixels, infoHeader_);
+        file.write(reinterpret_cast<const char*>(&infoHeader_), sizeof(infoHeader_));
+        file.seekp(header_.offset, std::ios::beg);
 
         int rowWidth = pixels[0].size();
         int padding = (rowWidth*3)%4;
@@ -171,7 +210,7 @@ public:
         file.close();
     }
 
-    void grayscale(std::vector<std::vector<pixel>>& pixels) const {
+    void grayscale(std::vector<std::vector<pixel>>& pixels) {
         for (int i = 0; i < pixels.size(); ++i) {
             for (int j = 0; j < pixels[i].size(); ++j) {
                 uint8_t grayVal = 0.229*pixels[i][j].r + 0.587*pixels[i][j].g + 0.114*pixels[i][j].b;
