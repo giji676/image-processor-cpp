@@ -246,9 +246,12 @@ public:
 int main() {
     ImageProcessor processor;
     BMP bmp;
-    std::vector<std::vector<rgbPixel>> pixels = bmp.loadBMP("test.bmp");
+    std::vector<std::vector<rgbPixel>> pixels = bmp.loadBMP("test2.bmp");
     std::vector<std::vector<grayPixel>> gPixels = processor.grayscale(pixels);
-    processor.gaussian(gPixels, 5);
-    bmp.saveImage("gaussian.bmp", gPixels);
+    std::vector<std::vector<grayPixel>> sobelPixels;
+    std::vector<std::vector<int>> gXOut;
+    std::vector<std::vector<int>> gYOut;
+    processor.sobel(gPixels, sobelPixels, gXOut, gYOut);
+    bmp.saveImage("sobel.bmp", sobelPixels);
     return 0;
 }

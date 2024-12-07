@@ -55,6 +55,43 @@ void ImageProcessor::gaussian(std::vector<std::vector<grayPixel>>& pixels, int r
     pixels = output;
 }
 
+void ImageProcessor::sobel(const std::vector<std::vector<grayPixel>>& pixels,
+                                 std::vector<std::vector<grayPixel>>& outputPixels,
+                                 std::vector<std::vector<int>>& gXOut,
+                                 std::vector<std::vector<int>>& gYOut) {
+    if (pixels.size() != outputPixels.size() || pixels[0].size() != outputPixels[0].size()) {
+        outputPixels.resize(pixels.size(), std::vector<grayPixel>(pixels[0].size()));
+    }
+    if (pixels.size() != gXOut.size() || pixels[0].size() != gXOut[0].size()) {
+        gXOut.resize(pixels.size(), std::vector<int>(pixels[0].size()));
+    }
+    if (pixels.size() != gYOut.size() || pixels[0].size() != gYOut[0].size()) {
+        gYOut.resize(pixels.size(), std::vector<int>(pixels[0].size()));
+    }
+
+    for (int y = 0; y < pixels.size(); ++y) {
+        for (int x = 0; x < pixels[y].size(); ++x) {
+            double gXSum = 0;
+            double gYSum = 0;
+            for (int j = -1; j <= 1; ++j) {
+                for (int i = -1; i <= 1; ++i) {
+                    int neighbourY = reflectIndex(y + j, pixels.size());
+                    int neighbourX = reflectIndex(x + i, pixels[0].size());
+                    gXSum += pixels[neighbourY][neighbourX].g * ImageProcessor::Gx[j + 1][i + 1];
+                    gYSum += pixels[neighbourY][neighbourX].g * ImageProcessor::Gy[j + 1][i + 1];
+                }
+            }
+            gXOut[y][x] = static_cast<int>(gXSum);
+            gYOut[y][x] = static_cast<int>(gYSum);
+
+            double G = sqrt(gXSum * gXSum + gYSum * gYSum);
+            G = remap(G, 0, sqrt(255*255 + 255*255), 0, 255);
+
+            outputPixels[y][x].g = static_cast<uint8_t>(G);
+        }
+    }
+}
+
 std::vector<std::vector<grayPixel>> ImageProcessor::grayscale(const std::vector<std::vector<rgbPixel>>& pixels) {
     std::vector<std::vector<grayPixel>> gPixels(pixels.size(), std::vector<grayPixel>(pixels[0].size()));
     for (int i = 0; i < pixels.size(); ++i) {
