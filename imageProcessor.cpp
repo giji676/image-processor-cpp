@@ -17,9 +17,11 @@ int ImageProcessor::reflectIndex(int index, int max_index) {
 
 void ImageProcessor::gaussian(std::vector<std::vector<grayPixel>>& pixels, int radius) {
     double sigma = std::max(radius / 2.0, 1.0);
-    double kernel[radius * 2 + 1][radius * 2 + 1];
-    double kernelSum = 0;
+    int size = radius * 2 + 1;
+    std::vector<std::vector<double>> kernel(size, std::vector<double>(size, 0.0));
+    double kernelSum = 0.0;
 
+    // Generate Gaussian kernel
     for (int i = -radius; i <= radius; ++i) {
         for (int j = -radius; j <= radius; ++j) {
             kernel[i + radius][j + radius] = gaussianKernelGenerator(j, i, sigma);
@@ -27,15 +29,18 @@ void ImageProcessor::gaussian(std::vector<std::vector<grayPixel>>& pixels, int r
         }
     }
 
-    for (int i = -radius; i <= radius; ++i) {
-        for (int j = -radius; j <= radius; ++j) {
-            kernel[i + radius][j + radius] /= kernelSum;
+    // Normalize the kernel
+    for (int i = 0; i < size; ++i) {
+        for (int j = 0; j < size; ++j) {
+            kernel[i][j] /= kernelSum;
         }
     }
 
+    // Apply Gaussian blur
+    std::vector<std::vector<grayPixel>> output = pixels; // Temporary output for safe in-place modification
     for (int y = 0; y < pixels.size(); ++y) {
         for (int x = 0; x < pixels[y].size(); ++x) {
-            int sumVal = 0;
+            double sumVal = 0.0;
             for (int i = -radius; i <= radius; ++i) {
                 for (int j = -radius; j <= radius; ++j) {
                     int neighbourY = reflectIndex(y + i, pixels.size());
@@ -43,9 +48,11 @@ void ImageProcessor::gaussian(std::vector<std::vector<grayPixel>>& pixels, int r
                     sumVal += pixels[neighbourY][neighbourX].g * kernel[i + radius][j + radius];
                 }
             }
-            pixels[y][x].g = std::clamp(sumVal, 0, 255);
+            output[y][x].g = static_cast<int>(std::clamp(sumVal, 0.0, 255.0));
         }
     }
+
+    pixels = output;
 }
 
 std::vector<std::vector<grayPixel>> ImageProcessor::grayscale(const std::vector<std::vector<rgbPixel>>& pixels) {

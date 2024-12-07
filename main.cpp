@@ -248,6 +248,7 @@ int main() {
     BMP bmp;
     std::vector<std::vector<rgbPixel>> pixels = bmp.loadBMP("test.bmp");
     std::vector<std::vector<grayPixel>> gPixels = processor.grayscale(pixels);
-    bmp.saveImage("gray.bmp", gPixels);
+    processor.gaussian(gPixels, 5);
+    bmp.saveImage("gaussian.bmp", gPixels);
     return 0;
 }
