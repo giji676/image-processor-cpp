@@ -3,6 +3,8 @@
 #include <vector>
 #include <cstdint>
 #include <string>
+#include "pixel.h"
+#include "imageProcessor.h"
 
 template <typename T>
 T lEndianUInt(std::vector<char> vals, int offset) {
@@ -14,13 +16,6 @@ T lEndianUInt(std::vector<char> vals, int offset) {
     }
     return newValue;
 }
-
-struct pixel {
-    uint8_t r;
-    uint8_t g;
-    uint8_t b;
-};
-
 
 class BMP {
 private:
@@ -34,17 +29,17 @@ private:
     };
 
     struct __attribute__((packed)) bitmapInfoHeader {
-        uint32_t size;         // 4 bytes
-        int32_t width;         // 4 bytes
-        int32_t height;        // 4 bytes
-        uint16_t planes;       // 2 bytes
-        uint16_t bitCount;     // 2 bytes
-        uint32_t compression;  // 4 bytes
-        uint32_t sizeImage;    // 4 bytes
-        int32_t horizontalRes; // 4 bytes
-        int32_t verticalRes;   // 4 bytes
-        uint32_t colorsUsed;   // 4 bytes
-        uint32_t colorsImportant; // 4 bytes
+        uint32_t size;          // 4 bytes
+        int32_t width;          // 4 bytes
+        int32_t height;         // 4 bytes
+        uint16_t planes;        // 2 bytes
+        uint16_t bitCount;      // 2 bytes
+        uint32_t compression;   // 4 bytes
+        uint32_t sizeImage;     // 4 bytes
+        int32_t horizontalRes;  // 4 bytes
+        int32_t verticalRes;    // 4 bytes
+        uint32_t colorsUsed;    // 4 bytes
+        uint32_t colorsImportant;  // 4 bytes
     };
 
     fileHeader header;
@@ -64,28 +59,32 @@ private:
         return file.gcount() == size;
     }
 
-    std::vector<std::vector<pixel>> readPixelData(std::ifstream& file, int width, int height, int row_size) {
-        std::vector<std::vector<pixel>> pixel_rows(height, std::vector<pixel>(width));
+    std::vector<std::vector<rgbPixel>> readPixelData(std::ifstream& file, int width, int height, int row_size) {
+        std::vector<std::vector<rgbPixel>> pixelRows(height, std::vector<rgbPixel>(width));
         for (int i = 0; i < height; ++i) {
             // Read raw row data
             std::vector<char> row_data(row_size);
             readFileBytes(file, row_data.data(), row_size);
             // Fill pixels from RGB data
             for (int j = 0; j < width; ++j) {
-                pixel_rows[i][j] = {
+                pixelRows[i][j] = {
                     static_cast<uint8_t>(row_data[j * 3 + 2]),  // Red
                     static_cast<uint8_t>(row_data[j * 3 + 1]),  // Green
                     static_cast<uint8_t>(row_data[j * 3])       // Blue
                 };
             }
         }
-        return pixel_rows;
+        return pixelRows;
     }
 
-    void constructFileHeader(const std::vector<std::vector<pixel>>& pixels, fileHeader* header) {
+    template <typename PixelType>
+    void constructFileHeader(const std::vector<std::vector<PixelType>>& pixels, fileHeader* header) {
         if (header == nullptr) {
             std::cerr << "Error: header is null!" << std::endl;
             return;
+        }
+        if constexpr (!std::is_same_v<PixelType, rgbPixel> && !std::is_same_v<PixelType, grayPixel>) {
+            static_assert(false, "Unsupported pixel type. Only rgbPixel and grayPixel are allowed.");
         }
 
         header->signature[0] = 'B';
@@ -101,10 +100,14 @@ private:
         header->offset = 14 + 40;
     }
 
-    void constructBitmapInfoHeader(const std::vector<std::vector<pixel>>& pixels, bitmapInfoHeader* infoHeader) {
+    template <typename PixelType>
+    void constructBitmapInfoHeader(const std::vector<std::vector<PixelType>>& pixels, bitmapInfoHeader* infoHeader) {
         if (infoHeader == nullptr) {
             std::cerr << "Error: infoHeader is null!" << std::endl;
             return;
+        }
+        if constexpr (!std::is_same_v<PixelType, rgbPixel> && !std::is_same_v<PixelType, grayPixel>) {
+            static_assert(false, "Unsupported pixel type. Only rgbPixel and grayPixel are allowed.");
         }
 
         infoHeader->size = 40;
@@ -130,7 +133,7 @@ private:
 
 public:
     // Public methods
-    std::vector<std::vector<pixel>> loadBMP(const std::string& filename) {
+    std::vector<std::vector<rgbPixel>> loadBMP(const std::string& filename) {
         std::ifstream file(filename, std::ios::binary);
         if (!file.is_open()) {
             throw std::runtime_error("Error: Could not open file");
@@ -181,7 +184,7 @@ public:
         std::cout << "ColorsImportant: " << infoHeader.colorsImportant << '\n';
     }
 
-    void printPixels(const std::vector<std::vector<pixel>>& pixels) const {
+    void printPixels(const std::vector<std::vector<rgbPixel>>& pixels) const {
         for (int i = 0; i < pixels.size(); ++i) {
             for (int j = 0; j < pixels[i].size(); ++j) {
                 std::cout << "(";
@@ -193,7 +196,16 @@ public:
         }
     }
 
-    void saveImage(const std::string& filename, const std::vector<std::vector<pixel>>& pixels) {
+    template <typename PixelType>
+    void saveImage(const std::string& filename, const std::vector<std::vector<PixelType>>& pixels) {
+        if constexpr (std::is_same_v<PixelType, rgbPixel>) {
+            // Handle rgbPixel case
+        } else if constexpr (std::is_same_v<PixelType, grayPixel>) {
+            // Handle grayPixel case
+        } else {
+            static_assert(std::is_same_v<PixelType, rgbPixel> || std::is_same_v<PixelType, grayPixel>, 
+                          "Unsupported pixel type. Only rgbPixel and grayPixel are allowed.");
+        }
         std::ofstream file(filename, std::ios::binary);
         fileHeader header_;
         constructFileHeader(pixels, &header_);
@@ -211,29 +223,31 @@ public:
             std::vector<char> rowData(rowSize, 0);
 
             for (int j = 0; j < rowWidth; ++j) {
-                rowData[j*3] = pixels[i][j].b;
-                rowData[j*3 + 1] = pixels[i][j].g;
-                rowData[j*3 + 2] = pixels[i][j].r; }
+                if constexpr (std::is_same_v<PixelType, rgbPixel>) {
+                    rowData[j*3] = pixels[i][j].b;
+                    rowData[j*3 + 1] = pixels[i][j].g;
+                    rowData[j*3 + 2] = pixels[i][j].r;
+                } else if constexpr (std::is_same_v<PixelType, grayPixel>) {
+                    rowData[j*3] = pixels[i][j].g;
+                    rowData[j*3 + 1] = pixels[i][j].g;
+                    rowData[j*3 + 2] = pixels[i][j].g;
+                } else {
+                    static_assert(std::is_same_v<PixelType, rgbPixel>
+                        || std::is_same_v<PixelType, grayPixel>,
+                        "Unsupported pixel type. Only rgbPixel and grayPixel are allowed.");
+                }
+            }
             file.write(rowData.data(), rowSize);
         }
-
         file.close();
-    }
-
-    void grayscale(std::vector<std::vector<pixel>>& pixels) {
-        for (int i = 0; i < pixels.size(); ++i) {
-            for (int j = 0; j < pixels[i].size(); ++j) {
-                uint8_t grayVal = 0.229*pixels[i][j].r + 0.587*pixels[i][j].g + 0.114*pixels[i][j].b;
-                pixels[i][j] = {grayVal, grayVal, grayVal};
-            }
-        }
     }
 };
 
 int main() {
+    ImageProcessor processor;
     BMP bmp;
-    std::vector<std::vector<pixel>> pixels = bmp.loadBMP("test.bmp");
-    bmp.grayscale(pixels);
-    bmp.saveImage("gray.bmp", pixels);
+    std::vector<std::vector<rgbPixel>> pixels = bmp.loadBMP("test.bmp");
+    std::vector<std::vector<grayPixel>> gPixels = processor.grayscale(pixels);
+    bmp.saveImage("gray.bmp", gPixels);
     return 0;
 }
