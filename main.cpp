@@ -244,7 +244,12 @@ public:
 };
 
 int main(int argc, char* argv[]) {
-    if (argc == 1) {
+    // expects the following:
+    //      ./main, inputFileName, outputFileName, processType, (gaussian ? radius : _)
+    // eg. ./main, input.bmp, output.bmp, gaussian, 5
+    // eg. ./main, input.bmp, output.bmp, gaussian
+    // eg. ./main, input.bmp, output.bmp, sobel
+    if (argc < 4) {
         return 0;
     }
 
@@ -253,28 +258,24 @@ int main(int argc, char* argv[]) {
     std::string outputFilename = "output.bmp";
     std::vector<std::vector<rgbPixel>> pixels;
     std::vector<std::vector<grayPixel>> gPixels;
-    if (argc >= 2) {
-        pixels = bmp.loadBMP(std::string(argv[1]));
-    }
-    if (argc >= 3) {
-        outputFilename = std::string(argv[2]);
-    }
-    if (argc >= 4) {
-        gPixels = processor.grayscale(pixels);
-        if (std::string(argv[3]) == "gaussian") {
-            int radius = 3;
-            if (argc == 5) {
-                radius = std::stoi(std::string(argv[4]));
-            }
-            processor.gaussian(gPixels, radius);
-            bmp.saveImage(outputFilename, gPixels);
-        } else if (std::string(argv[3]) == "sobel") {
-            std::vector<std::vector<grayPixel>> sobelPixels;
-            std::vector<std::vector<int>> gXOut;
-            std::vector<std::vector<int>> gYOut;
-            processor.sobel(gPixels, sobelPixels, gXOut, gYOut);
-            bmp.saveImage(outputFilename, sobelPixels);
+
+    pixels = bmp.loadBMP(std::string(argv[1]));
+    outputFilename = std::string(argv[2]);
+
+    gPixels = processor.grayscale(pixels);
+    if (std::string(argv[3]) == "gaussian") {
+        int radius = 3;
+        if (argc == 5) {
+            radius = std::stoi(std::string(argv[4]));
         }
+        processor.gaussian(gPixels, radius);
+        bmp.saveImage(outputFilename, gPixels);
+    } else if (std::string(argv[3]) == "sobel") {
+        std::vector<std::vector<grayPixel>> sobelPixels;
+        std::vector<std::vector<int>> gXOut;
+        std::vector<std::vector<int>> gYOut;
+        processor.sobel(gPixels, sobelPixels, gXOut, gYOut);
+        bmp.saveImage(outputFilename, sobelPixels);
     }
 
     return 0;
