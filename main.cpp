@@ -243,15 +243,39 @@ public:
     }
 };
 
-int main() {
+int main(int argc, char* argv[]) {
+    if (argc == 1) {
+        return 0;
+    }
+
     ImageProcessor processor;
     BMP bmp;
-    std::vector<std::vector<rgbPixel>> pixels = bmp.loadBMP("test2.bmp");
-    std::vector<std::vector<grayPixel>> gPixels = processor.grayscale(pixels);
-    std::vector<std::vector<grayPixel>> sobelPixels;
-    std::vector<std::vector<int>> gXOut;
-    std::vector<std::vector<int>> gYOut;
-    processor.sobel(gPixels, sobelPixels, gXOut, gYOut);
-    bmp.saveImage("sobel.bmp", sobelPixels);
+    std::string outputFilename = "output.bmp";
+    std::vector<std::vector<rgbPixel>> pixels;
+    std::vector<std::vector<grayPixel>> gPixels;
+    if (argc >= 2) {
+        pixels = bmp.loadBMP(std::string(argv[1]));
+    }
+    if (argc >= 3) {
+        outputFilename = std::string(argv[2]);
+    }
+    if (argc >= 4) {
+        gPixels = processor.grayscale(pixels);
+        if (std::string(argv[3]) == "gaussian") {
+            int radius = 3;
+            if (argc == 5) {
+                radius = std::stoi(std::string(argv[4]));
+            }
+            processor.gaussian(gPixels, radius);
+            bmp.saveImage(outputFilename, gPixels);
+        } else if (std::string(argv[3]) == "sobel") {
+            std::vector<std::vector<grayPixel>> sobelPixels;
+            std::vector<std::vector<int>> gXOut;
+            std::vector<std::vector<int>> gYOut;
+            processor.sobel(gPixels, sobelPixels, gXOut, gYOut);
+            bmp.saveImage(outputFilename, sobelPixels);
+        }
+    }
+
     return 0;
 }
