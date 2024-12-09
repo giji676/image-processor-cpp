@@ -43,13 +43,11 @@ int main(int argc, char* argv[]) {
         image.grayscale(image.rgbImage);
         image.gaussian(image.grayImage, radius);
         image.save(outputFilename, image.grayImage);
-    } /*else if (std::string(argv[3]) == "sobel") {
-        std::vector<std::vector<grayPixel>> sobelPixels;
-        std::vector<std::vector<int>> gXOut;
-        std::vector<std::vector<int>> gYOut;
-        processor.sobel(gPixels, sobelPixels, gXOut, gYOut);
-        bmp.saveImage(outputFilename, sobelPixels);
-    }*/
+    } else if (std::string(argv[3]) == "sobel") {
+        image.grayscale(image.rgbImage);
+        image.sobel(image.grayImage);
+        image.save(outputFilename, image.grayImage);
+    }
 
     return 0;
 }

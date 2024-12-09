@@ -35,3 +35,9 @@ void Image::gaussian(std::vector<std::vector<grayPixel>>& pixels, int radius) {
     Image::imageProcessor.gaussian(pixels, radius);
     Image::grayImage = pixels;
 }
+
+void Image::sobel(const std::vector<std::vector<grayPixel>>& pixels) {
+    std::vector<std::vector<grayPixel>> sobelPixels;
+    Image::imageProcessor.sobel(pixels, sobelPixels, Image::gXOut, Image::gYOut);
+    Image::grayImage = sobelPixels;
+}
