@@ -1,18 +1,32 @@
 CC = g++
-CXX_STANDARD = -std=c++17  # Replace with -std=c++11, -std=c++14, -std=c++20 as needed
-LIBS =
+CXX_STANDARD = -std=c++17
+LIBS =  # Add necessary libraries here, e.g., -lm
 BUILD_DIR = build/
-SOURCES = main.cpp imageProcessor.cpp bmp.cpp
-HEADERS = pixel.h imageProcessor.h bmp.h
-TARGET = main
+SRC_DIR = src/
+INCLUDE_DIR = include/
+SOURCES = $(wildcard $(SRC_DIR)*.cpp)
+HEADERS = $(wildcard $(INCLUDE_DIR)*.h)
+OBJECTS = $(SOURCES:$(SRC_DIR)%.cpp=$(BUILD_DIR)%.o)
+TARGET = $(BUILD_DIR)main
 
+# Compiler flags
+CXXFLAGS = $(CXX_STANDARD) -I$(INCLUDE_DIR)
+
+# Default target
+all: $(TARGET)
+
+# Ensure build directory exists
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
 
-all: $(BUILD_DIR) $(BUILD_DIR)$(TARGET)
+# Link object files to create the final executable
+$(TARGET): $(BUILD_DIR) $(OBJECTS)
+	$(CC) $(CXXFLAGS) $(OBJECTS) $(LIBS) -o $@
 
-$(BUILD_DIR)$(TARGET): $(SOURCES) $(HEADERS)
-	$(CC) $(CXX_STANDARD) $(SOURCES) $(LIBS) -o $(BUILD_DIR)$(TARGET)
+# Compile source files into object files
+$(BUILD_DIR)%.o: $(SRC_DIR)%.cpp $(HEADERS) | $(BUILD_DIR)
+	$(CC) $(CXXFLAGS) -c $< -o $@
 
+# Clean build directory
 clean:
-	rm -rf $(BUILD_DIR)/*
+	rm -rf $(BUILD_DIR)
