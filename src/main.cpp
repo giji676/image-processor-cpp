@@ -4,6 +4,7 @@
 #include "bmp.h"
 #include "pixel.h"
 #include "imageProcessor.h"
+#include "image.h"
 
 template <typename T>
 T lEndianUInt(std::vector<char> vals, int offset) {
@@ -22,34 +23,33 @@ int main(int argc, char* argv[]) {
     // eg. ./main, input.bmp, output.bmp, gaussian, 5
     // eg. ./main, input.bmp, output.bmp, gaussian
     // eg. ./main, input.bmp, output.bmp, sobel
+
     if (argc < 4) {
         return 0;
     }
 
-    ImageProcessor processor;
-    BMP bmp;
-    std::string outputFilename = "output.bmp";
-    std::vector<std::vector<rgbPixel>> pixels;
-    std::vector<std::vector<grayPixel>> gPixels;
+    Image image;
 
-    pixels = bmp.loadBMP(std::string(argv[1]));
+    std::string outputFilename = "output.bmp";
     outputFilename = std::string(argv[2]);
 
-    gPixels = processor.grayscale(pixels);
+    image.open(std::string(argv[1]));
+
     if (std::string(argv[3]) == "gaussian") {
         int radius = 3;
         if (argc == 5) {
             radius = std::stoi(std::string(argv[4]));
         }
-        processor.gaussian(gPixels, radius);
-        bmp.saveImage(outputFilename, gPixels);
-    } else if (std::string(argv[3]) == "sobel") {
+        image.grayscale(image.rgbImage);
+        image.gaussian(image.grayImage, radius);
+        image.save(outputFilename, image.grayImage);
+    } /*else if (std::string(argv[3]) == "sobel") {
         std::vector<std::vector<grayPixel>> sobelPixels;
         std::vector<std::vector<int>> gXOut;
         std::vector<std::vector<int>> gYOut;
         processor.sobel(gPixels, sobelPixels, gXOut, gYOut);
         bmp.saveImage(outputFilename, sobelPixels);
-    }
+    }*/
 
     return 0;
 }

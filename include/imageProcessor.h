@@ -5,7 +5,6 @@
 #include "pixel.h" // Ensure this contains definitions for grayPixel and rgbPixel.
 
 class ImageProcessor {
-
 private:
     int Gx[3][3] = {
         {-1,  0,  1},
